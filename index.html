@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>数学练习题</title>
+    <link href="https://static.hzchu.top/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .num-pad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            max-width: 400px;
+            margin: 20px auto;
+        }
+        .num-btn {
+            padding: 15px;
+            font-size: 1.2em;
+        }
+        #feedback, #history {
+            min-height: 30px;
+        }
+        .btn-success { background-color: #28a745 !important; }
+        .history-correct { color: #28a745; }
+        .history-wrong { color: #dc3545; }
+        .settings-group {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-body text-center">
+                        <!-- 设置区域 -->
+                        <div class="settings-group">
+                            <div class="row mb-3">
+                                <div class="col">
+                                    <h5>运算类型</h5>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="add" checked>
+                                        <label class="form-check-label" for="add">加法 (+)</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="sub" checked>
+                                        <label class="form-check-label" for="sub">减法 (-)</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="mul" checked>
+                                        <label class="form-check-label" for="mul">乘法 (×)</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="div" checked>
+                                        <label class="form-check-label" for="div">除法 (÷)</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    <h5>其他设置</h5>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="checkbox" id="negative">
+                                        <label class="form-check-label" for="negative">允许负数</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 class="mb-4" id="problem"></h2>
+                        <input type="number" class="form-control form-control-lg mb-3 text-center" id="answer" 
+                               placeholder="输入答案" autofocus>
+                        <div id="feedback" class="h5 mb-3"></div>
+                        
+                        <div class="num-pad">
+                            <button class="btn btn-outline-secondary num-btn" data-number="7">7</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="8">8</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="9">9</button>
+                            <button class="btn btn-success num-btn" data-action="submit">确定</button>
+
+                            <button class="btn btn-outline-secondary num-btn" data-number="4">4</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="5">5</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="6">6</button>
+                            <button class="btn btn-outline-danger num-btn" data-action="clear">C</button>
+
+                            <button class="btn btn-outline-secondary num-btn" data-number="1">1</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="2">2</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="3">3</button>
+                            <button class="btn btn-outline-primary num-btn" data-action="backspace">⌫</button>
+
+                            <button class="btn btn-outline-secondary num-btn" data-action="negate">±</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="0">0</button>
+                        </div>
+
+                        <div class="mt-4">
+                            <h4>历史记录</h4>
+                            <ul id="history" class="list-group"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://static.hzchu.top/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentProblem = null;
+        let isError = false;
+        let history = JSON.parse(localStorage.getItem('mathHistory')) || [];
+        let settings = JSON.parse(localStorage.getItem('mathSettings')) || {
+            add: true, sub: true, mul: true, div: true, negative: false
+        };
+
+        // 初始化设置
+        document.getElementById('add').checked = settings.add;
+        document.getElementById('sub').checked = settings.sub;
+        document.getElementById('mul').checked = settings.mul;
+        document.getElementById('div').checked = settings.div;
+        document.getElementById('negative').checked = settings.negative;
+
+        // 保存设置
+        function saveSettings() {
+            settings = {
+                add: document.getElementById('add').checked,
+                sub: document.getElementById('sub').checked,
+                mul: document.getElementById('mul').checked,
+                div: document.getElementById('div').checked,
+                negative: document.getElementById('negative').checked
+            };
+            localStorage.setItem('mathSettings', JSON.stringify(settings));
+        }
+
+        // 设置变更监听
+        document.querySelectorAll('.form-check-input').forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                saveSettings();
+                currentProblem = generateProblem();
+            });
+        });
+
+        function updateHistory() {
+            localStorage.setItem('mathHistory', JSON.stringify(history));
+            const container = document.getElementById('history');
+            container.innerHTML = history.slice(-10).reverse().map(item => `
+                <li class="list-group-item ${item.correct ? 'history-correct' : 'history-wrong'}">
+                    ${item.problem} 
+                    你的答案：${item.userAnswer} 
+                    ${item.correct ? '✓' : '✗ 正确答案：'+item.correctAnswer}
+                </li>
+            `).join('');
+        }
+
+        function getRandomNumber(digits, canNegative) {
+            const min = Math.pow(10, digits - 1);
+            const max = Math.pow(10, digits) - 1;
+            let num = Math.floor(Math.random() * (max - min + 1)) + min;
+            if (canNegative && Math.random() < 0.5) num *= -1;
+            if (!settings.negative) num = Math.abs(num); // 禁止负数
+            return num;
+        }
+
+        function generateProblem() {
+            const enabledOps = [];
+            if (settings.add) enabledOps.push('+');
+            if (settings.sub) enabledOps.push('-');
+            if (settings.mul) enabledOps.push('×');
+            if (settings.div) enabledOps.push('÷');
+            
+            if (enabledOps.length === 0) {
+                alert('请至少选择一种运算类型！');
+                return { a: 0, b: 0, op: '+', answer: 0 };
+            }
+
+            let a, b, answer, op;
+            do {
+                op = enabledOps[Math.floor(Math.random() * enabledOps.length)];
+                if (op === '+' || op === '-') {
+                    a = getRandomNumber(Math.floor(Math.random() * 4) + 1, settings.negative);
+                    b = getRandomNumber(Math.floor(Math.random() * 4) + 1, settings.negative);
+                    answer = op === '+' ? a + b : a - b;
+                } else if (op === '×') {
+                    a = getRandomNumber(Math.floor(Math.random() * 2) + 1, settings.negative);
+                    b = getRandomNumber(Math.floor(Math.random() * 2) + 1, settings.negative);
+                    answer = a * b;
+                } else { // 除法
+                    let divisor, quotient;
+                    do {
+                        divisor = getRandomNumber(Math.floor(Math.random() * 2) + 1, settings.negative);
+                        quotient = getRandomNumber(Math.floor(Math.random() * 2) + 1, settings.negative);
+                    } while (divisor === 0 || Math.abs(divisor * quotient) > 9999);
+                    
+                    a = divisor * quotient;
+                    b = divisor;
+                    answer = quotient;
+                }
+            } while (op === '÷' && a % b !== 0);
+
+            document.getElementById('problem').innerHTML = `
+                ${a.toString().replace(/-/g, '−')} 
+                <span class="op">${op}</span> 
+                ${b.toString().replace(/-/g, '−')} = 
+            `;
+            return { a, b, op, answer };
+        }
+
+        function handleSubmission() {
+            if (isError) {
+                currentProblem = generateProblem();
+                document.getElementById('answer').value = '';
+                document.getElementById('feedback').textContent = '';
+                isError = false;
+                return;
+            }
+
+            const userAnswer = parseInt(document.getElementById('answer').value);
+            const feedback = document.getElementById('feedback');
+
+            if (userAnswer === currentProblem.answer) {
+                feedback.textContent = '✓ 正确！';
+                feedback.style.color = 'green';
+                history.push({
+                    problem: `${currentProblem.a} ${currentProblem.op} ${currentProblem.b} =`,
+                    userAnswer,
+                    correctAnswer: currentProblem.answer,
+                    correct: true
+                });
+                setTimeout(() => {
+                    currentProblem = generateProblem();
+                    document.getElementById('answer').value = '';
+                    feedback.textContent = '';
+                }, 1500);
+            } else {
+                feedback.innerHTML = `✗ 错误！正确答案是 <strong>${currentProblem.answer}</strong>`;
+                feedback.style.color = 'red';
+                history.push({
+                    problem: `${currentProblem.a} ${currentProblem.op} ${currentProblem.b} =`,
+                    userAnswer,
+                    correctAnswer: currentProblem.answer,
+                    correct: false
+                });
+                isError = true;
+            }
+            updateHistory();
+        }
+
+        document.getElementById('answer').addEventListener('input', function(e) {
+            if (isError) return;
+            const userAnswer = parseInt(e.target.value);
+            if (!isNaN(userAnswer) && userAnswer === currentProblem?.answer) {
+                handleSubmission();
+            }
+        });
+
+        document.getElementById('answer').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSubmission();
+        });
+
+        document.querySelectorAll('.num-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = document.getElementById('answer');
+                if (btn.dataset.number) {
+                    input.value += btn.dataset.number;
+                } else if (btn.dataset.action === 'clear') {
+                    input.value = '';
+                } else if (btn.dataset.action === 'backspace') {
+                    input.value = input.value.slice(0, -1);
+                } else if (btn.dataset.action === 'submit') {
+                    handleSubmission();
+                } else if (btn.dataset.action === 'negate') {
+                    if (settings.negative) { // 仅当允许负数时生效
+                        if (!input.value.startsWith('-') && input.value !== '') {
+                            input.value = '-' + input.value;
+                        } else if (input.value.startsWith('-')) {
+                            input.value = input.value.slice(1);
+                        }
+                    }
+                }
+            });
+        });
+
+        currentProblem = generateProblem();
+        updateHistory();
+    </script>
+</body>
+</html>
