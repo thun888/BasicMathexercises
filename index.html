@@ -47,17 +47,17 @@
                                         <div class="col-md-6">
                                             <div class="input-group digit-control">
                                                 <span class="input-group-text">加减法位数</span>
-                                                <input type="number" id="addSubMin" class="form-control" min="1" max="4" value="1">
+                                                <input type="number" id="addSubMin" class="form-control form-control-panel" min="1" max="4" value="1">
                                                 <span class="input-group-text">-</span>
-                                                <input type="number" id="addSubMax" class="form-control" min="1" max="4" value="4">
+                                                <input type="number" id="addSubMax" class="form-control form-control-panel" min="1" max="4" value="4">
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="input-group digit-control">
                                                 <span class="input-group-text">乘除法位数</span>
-                                                <input type="number" id="mulDivMin" class="form-control" min="1" max="2" value="1">
+                                                <input type="number" id="mulDivMin" class="form-control form-control-panel" min="1" max="2" value="1">
                                                 <span class="input-group-text">-</span>
-                                                <input type="number" id="mulDivMax" class="form-control" min="1" max="2" value="2">
+                                                <input type="number" id="mulDivMax" class="form-control form-control-panel" min="1" max="2" value="2">
                                             </div>
                                         </div>
                                     </div>
@@ -399,7 +399,7 @@
         }
 
         // 初始化
-        document.querySelectorAll('.form-check-input, .form-control').forEach(element => {
+        document.querySelectorAll('.form-check-input, .form-control-panel').forEach(element => {
             element.addEventListener('change', () => {
                 saveSettings();
                 currentProblem = generateProblem();
