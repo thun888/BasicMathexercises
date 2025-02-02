@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>十字相乘法练习</title>
+    <link href="https://static.hzchu.top/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        .num-pad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            max-width: 400px;
+            margin: 20px auto;
+        }
+        .num-btn {
+            padding: 15px;
+            font-size: 1.2em;
+        }
+        #feedback, #history {
+            min-height: 30px;
+        }
+        .btn-success { background-color: #28a745 !important; }
+        .history-correct { color: #28a745; }
+        .history-wrong { color: #dc3545; }
+        .settings-group {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .history-actions { margin-top: 10px; }
+        .coefficient-control { min-width: 150px; }
+        .problem-area { font-size: 1.5em; }
+        #problem { 
+            letter-spacing: 0.1em;
+            font-family: "Cambria Math", Symbola, serif;
+        }
+        .coefficient-input {
+            max-width: 100px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card shadow">
+                    <div class="card-body text-center">
+                        <!-- 设置区域 -->
+                        <div class="settings-group">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <h5>题目设置</h5>
+                                    <div class="row g-3 justify-content-center">
+                                        <div class="col-md-6">
+                                            <div class="input-group coefficient-control">
+                                                <span class="input-group-text">系数范围</span>
+                                                <input type="number" id="coeffMin" class="form-control coefficient-input" value="-10" min="-50" max="50">
+                                                <span class="input-group-text">-</span>
+                                                <input type="number" id="coeffMax" class="form-control coefficient-input" value="10" min="-50" max="50">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="d-flex gap-3 justify-content-center">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="negative">
+                                                    <label class="form-check-label" for="negative">允许负数</label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="retryWrong">
+                                                    <label class="form-check-label" for="retryWrong">错题重练</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 题目展示 -->
+                        <div class="problem-area mb-4">
+                            <h2 class="display-4" id="problem"></h2>
+                            <input type="text" class="form-control form-control-lg text-center" 
+                                   id="answer" placeholder="输入两个数，用空格分隔" autofocus
+                                   pattern="^-?\d+[ ]-?\d+$">
+                            <div id="feedback" class="h3 mt-3"></div>
+                        </div>
+
+                        <!-- 数字键盘 -->
+                        <div class="num-pad">
+                            <button class="btn btn-outline-secondary num-btn" data-number="7">7</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="8">8</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="9">9</button>
+                            <button class="btn btn-success num-btn" data-action="submit">确定</button>
+
+                            <button class="btn btn-outline-secondary num-btn" data-number="4">4</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="5">5</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="6">6</button>
+                            <button class="btn btn-outline-danger num-btn" data-action="clear">C</button>
+
+                            <button class="btn btn-outline-secondary num-btn" data-number="1">1</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="2">2</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="3">3</button>
+                            <button class="btn btn-outline-primary num-btn" data-action="backspace">⌫</button>
+
+                            <button class="btn btn-outline-secondary num-btn" data-action="negate">±</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number="0">0</button>
+                            <button class="btn btn-outline-secondary num-btn" data-number=" ">空格</button>
+                        </div>
+
+                        <!-- 历史记录 -->
+                        <div class="history-section mt-5">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4>练习历史 <span class="badge bg-secondary" id="historyCount">0</span></h4>
+                                <div class="history-actions btn-group">
+                                    <button class="btn btn-sm btn-outline-danger" onclick="clearHistory()">清空</button>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="exportHistory()">导出</button>
+                                    <input type="file" id="importFile" hidden onchange="importHistory(this.files[0])">
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="document.getElementById('importFile').click()">导入</button>
+                                </div>
+                            </div>
+                            <ul id="history" class="list-group"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://static.hzchu.top/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentProblem = null;
+        let isError = false;
+        let history = JSON.parse(localStorage.getItem('crossHistory')) || [];
+        let settings = JSON.parse(localStorage.getItem('crossSettings')) || {
+            coeffMin: -10,
+            coeffMax: 10,
+            negative: true,
+            retryWrong: false
+        };
+
+        // 初始化设置
+        function initSettings() {
+            document.getElementById('coeffMin').value = settings.coeffMin;
+            document.getElementById('coeffMax').value = settings.coeffMax;
+            document.getElementById('negative').checked = settings.negative;
+            document.getElementById('retryWrong').checked = settings.retryWrong;
+        }
+
+        // 保存设置
+        function saveSettings() {
+            let coeffMin = parseInt(document.getElementById('coeffMin').value) || -10;
+            let coeffMax = parseInt(document.getElementById('coeffMax').value) || 10;
+            
+            // 自动交换大小值并限制范围
+            [coeffMin, coeffMax] = [Math.min(coeffMin, coeffMax), Math.max(coeffMin, coeffMax)];
+            coeffMin = Math.max(-50, Math.min(50, coeffMin));
+            coeffMax = Math.max(-50, Math.min(50, coeffMax));
+
+            settings = {
+                coeffMin: coeffMin,
+                coeffMax: coeffMax,
+                negative: document.getElementById('negative').checked,
+                retryWrong: document.getElementById('retryWrong').checked
+            };
+            localStorage.setItem('crossSettings', JSON.stringify(settings));
+        }
+
+        // 生成有效题目
+        function generateProblem() {
+            if(settings.retryWrong) {
+                const wrongAnswers = history.filter(item => !item.correct);
+                if(wrongAnswers.length > 0) {
+                    return wrongAnswers[Math.floor(Math.random()*wrongAnswers.length)];
+                }
+            }
+
+            let m, n, safety = 0;
+            do {
+                m = Math.floor(Math.random() * (settings.coeffMax - settings.coeffMin + 1)) + settings.coeffMin;
+                n = Math.floor(Math.random() * (settings.coeffMax - settings.coeffMin + 1)) + settings.coeffMin;
+                
+                // 安全限制
+                if(safety++ > 100) {
+                    alert('无法生成有效题目，请调整系数范围');
+                    return { m: 2, n: 3, problem: "x²+5x+6", answer: [2,3] };
+                }
+            } while(
+                m === 0 ||          // 排除m为0
+                n === 0 ||           // 排除n为0
+                (m + n) === 0 ||     // 排除中间项为0
+                (m * n) === 0 ||     // 排除常数项为0
+                (!settings.negative && (m < 0 || n < 0))  // 处理负数设置
+            );
+
+            const b = m + n;
+            const c = m * n;
+
+            document.getElementById('problem').innerHTML = 
+                `x²${formatCoefficient(b, true)}x${formatCoefficient(c)}`;
+
+            return { 
+                m, 
+                n, 
+                problem: `x²${formatCoefficient(b)}x${formatCoefficient(c)}`, 
+                answer: [m, n].sort((a,b) => a - b)
+            };
+        }
+
+        // 格式化工件显示
+        function formatCoefficient(value, isMiddleTerm = false) {
+            if(value === 0 && isMiddleTerm) return "";
+            const sign = value < 0 ? "−" : "+";
+            const absValue = Math.abs(value);
+            
+            if(isMiddleTerm) {
+                return ` ${sign} ${absValue === 1 ? '' : absValue}`;
+            }
+            return ` ${sign} ${absValue}`;
+        }
+
+        // 提交答案
+        function handleSubmission() {
+            if (isError) {
+                currentProblem = generateProblem();
+                document.getElementById('answer').value = '';
+                document.getElementById('feedback').textContent = '';
+                isError = false;
+                return;
+            }
+
+            const input = document.getElementById('answer').value.trim();
+            const feedback = document.getElementById('feedback');
+            
+            // 输入验证
+            if(!/^-?\d+[ ]-?\d+$/.test(input)) {
+                feedback.textContent = "请输入两个整数（用空格分隔）";
+                feedback.style.color = 'red';
+                return;
+            }
+
+            const answers = input.split(' ').map(Number).sort((a,b) => a - b);
+            const expected = currentProblem.answer;
+
+            const newRecord = {
+                problem: currentProblem.problem,
+                userAnswer: answers,
+                correctAnswer: expected,
+                correct: arraysEqual(answers, expected),
+                timestamp: new Date().getTime()
+            };
+
+            history.push(newRecord);
+            updateHistory();
+
+            if(newRecord.correct) {
+                feedback.textContent = '✓ 回答正确！';
+                feedback.style.color = 'green';
+                setTimeout(() => {
+                    currentProblem = generateProblem();
+                    document.getElementById('answer').value = '';
+                    feedback.textContent = '';
+                }, 500);
+            } else {
+                feedback.textContent = `✗ 正确答案：${currentProblem.answer.join(' 和 ')}`;
+                feedback.style.color = 'red';
+                isError = true;
+            }
+        }
+
+        // 数组比较
+        function arraysEqual(a, b) {
+            return a.length === b.length && 
+                a.every((val, index) => val === b[index]);
+        }
+
+        // 历史记录管理
+        function updateHistory() {
+            localStorage.setItem('crossHistory', JSON.stringify(history));
+            const container = document.getElementById('history');
+            container.innerHTML = history.map((item, index) => `
+                <li class="list-group-item ${item.correct ? 'history-correct' : 'history-wrong'}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-bold">${item.problem}</span><br>
+                            <small>你的答案：${item.userAnswer.join(', ')}</small>
+                        </div>
+                        <div>
+                            <span class="badge ${item.correct ? 'bg-success' : 'bg-danger'} me-2">
+                                ${item.correct ? '正确' : '错误'}
+                            </span>
+                            <button class="btn btn-sm btn-danger" onclick="deleteHistory(${index})">删除</button>
+                        </div>
+                    </div>
+                </li>
+            `).reverse().join('');
+            document.getElementById('historyCount').textContent = history.length;
+        }
+
+        // 其他功能
+        function deleteHistory(index) {
+            history.splice(index, 1);
+            updateHistory();
+        }
+
+        function clearHistory() {
+            if (confirm('确定要清空所有历史记录吗？')) {
+                history = [];
+                updateHistory();
+            }
+        }
+
+        function exportHistory() {
+            const dataStr = JSON.stringify(history, null, 2);
+            const blob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cross_history_${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function importHistory(file) {
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (Array.isArray(importedData)) {
+                        history = importedData;
+                        updateHistory();
+                        alert('成功导入历史记录！');
+                    } else {
+                        alert('文件格式不正确');
+                    }
+                } catch (error) {
+                    alert('导入失败：文件解析错误');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 初始化事件监听
+        document.querySelectorAll('.form-control, .form-check-input').forEach(el => {
+            el.addEventListener('change', () => {
+                saveSettings();
+                currentProblem = generateProblem();
+            });
+        });
+
+        document.getElementById('answer').addEventListener('keypress', e => {
+            if (e.key === 'Enter') handleSubmission();
+        });
+
+        document.querySelectorAll('.num-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = document.getElementById('answer');
+                if (btn.dataset.number) {
+                    input.value += btn.dataset.number;
+                } else if (btn.dataset.action === 'clear') {
+                    input.value = '';
+                } else if (btn.dataset.action === 'backspace') {
+                    input.value = input.value.slice(0, -1);
+                } else if (btn.dataset.action === 'submit') {
+                    handleSubmission();
+                } else if (btn.dataset.action === 'negate') {
+                    if(settings.negative) {
+                        input.value = input.value.startsWith('-') ? 
+                            input.value.slice(1) : `-${input.value}`;
+                    }
+                }
+            });
+        });
+
+        // 启动程序
+        initSettings();
+        currentProblem = generateProblem();
+        updateHistory();
+    </script>
+</body>
+</html>
