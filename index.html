@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>数学练习题</title>
     <link href="https://static.hzchu.top/bootstrap/5.3.3/css/bootstrap.min.css" rel="stylesheet">
+    <!-- 在head标签内添加viewport meta标签防止缩放 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         .num-pad {
             display: grid;
@@ -428,6 +430,36 @@
                     }
                 }
             });
+        });
+        // 在初始化部分之后添加键盘监听
+        document.addEventListener('keydown', function(e) {
+            const answerInput = document.getElementById('answer');
+            
+            // 排除其他输入框的输入
+            if (document.activeElement !== answerInput && 
+                document.activeElement.tagName === 'INPUT') return;
+
+            // 处理数字输入
+            if (e.key >= '0' && e.key <= '9') {
+                answerInput.value += e.key;
+                e.preventDefault();
+            }
+            // 处理回退键
+            else if (e.key === 'Backspace') {
+                answerInput.value = answerInput.value.slice(0, -1);
+                e.preventDefault();
+            }
+            // 处理负号
+            else if (e.key === '-' && settings.negative) {
+                answerInput.value = answerInput.value.startsWith('-') ? 
+                    answerInput.value.slice(1) : `-${answerInput.value}`;
+                e.preventDefault();
+            }
+            // 处理回车键
+            else if (e.key === 'Enter') {
+                handleSubmission();
+                e.preventDefault();
+            }
         });
 
         // 启动程序
