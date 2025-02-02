@@ -343,7 +343,7 @@
                     currentProblem = generateProblem();
                     document.getElementById('answer').value = '';
                     feedback.textContent = '';
-                }, 1500);
+                }, 500);
             } else {
                 feedback.innerHTML = `✗ 回答错误！正确答案是 <strong>${currentProblem.answer}</strong>`;
                 feedback.style.color = 'red';
